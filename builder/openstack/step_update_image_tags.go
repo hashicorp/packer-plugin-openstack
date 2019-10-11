@@ -3,20 +3,21 @@ package openstack
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	imageservice "github.com/gophercloud/gophercloud/openstack/imageservice/v2/images"
 	"github.com/hashicorp/packer/helper/multistep"
 	"github.com/hashicorp/packer/packer"
 )
 
-type stepUpdateImageVisibility struct{}
+type stepUpdateImageTags struct{}
 
-func (s *stepUpdateImageVisibility) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
+func (s *stepUpdateImageTags) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
 	imageId := state.Get("image").(string)
 	ui := state.Get("ui").(packer.Ui)
 	config := state.Get("config").(*Config)
 
-	if config.ImageVisibility == "" {
+	if len(config.ImageTags) == 0 {
 		return multistep.ActionContinue
 	}
 	imageClient, err := config.imageV2Client()
@@ -26,19 +27,19 @@ func (s *stepUpdateImageVisibility) Run(ctx context.Context, state multistep.Sta
 		return multistep.ActionHalt
 	}
 
-	ui.Say(fmt.Sprintf("Updating image visibility to %s", config.ImageVisibility))
+	ui.Say(fmt.Sprintf("Updating image tags to %s", strings.Join(config.ImageTags, ", ")))
 	r := imageservice.Update(
 		imageClient,
 		imageId,
 		imageservice.UpdateOpts{
-			imageservice.UpdateVisibility{
-				Visibility: config.ImageVisibility,
+			imageservice.ReplaceImageTags{
+				NewTags: config.ImageTags,
 			},
 		},
 	)
 
 	if _, err = r.Extract(); err != nil {
-		err = fmt.Errorf("Error updating image visibility: %s", err)
+		err = fmt.Errorf("Error updating image tags: %s", err)
 		state.Put("error", err)
 		return multistep.ActionHalt
 	}
@@ -46,6 +47,6 @@ func (s *stepUpdateImageVisibility) Run(ctx context.Context, state multistep.Sta
 	return multistep.ActionContinue
 }
 
-func (s *stepUpdateImageVisibility) Cleanup(multistep.StateBag) {
+func (s *stepUpdateImageTags) Cleanup(multistep.StateBag) {
 	// No cleanup...
 }
