@@ -13,6 +13,10 @@ dev: build
 	@mkdir -p ~/.packer.d/plugins/
 	@mv ${BINARY} ~/.packer.d/plugins/${BINARY}
 
+generate:
+	@go install github.com/hashicorp/packer-plugin-sdk/cmd/packer-sdc@latest
+	@go generate ./...
+
 run-example: dev
 	@packer build ./example
 
