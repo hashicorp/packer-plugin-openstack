@@ -237,7 +237,7 @@ func TestBuildBadImageFilter(t *testing.T) {
 	}
 
 	filters := ImageFilterOptions{}
-	mapstructure.Decode(filterMap, &filters)
+	_ = mapstructure.Decode(filterMap, &filters)
 	listOpts, err := filters.Build()
 
 	if err != nil {
