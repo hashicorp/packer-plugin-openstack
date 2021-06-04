@@ -143,7 +143,7 @@ func berToDer(ber []byte, ui packersdk.Ui) []byte {
 	if err != nil {
 		return ber
 	}
-	ioutil.WriteFile(berKey.Name(), ber, os.ModeAppend)
+	_ = ioutil.WriteFile(berKey.Name(), ber, os.ModeAppend)
 	derKey, err := tmp.File("packer-der-privatekey-")
 	defer os.Remove(derKey.Name())
 	if err != nil {

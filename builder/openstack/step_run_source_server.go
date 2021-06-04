@@ -169,5 +169,5 @@ func (s *StepRunSourceServer) Cleanup(state multistep.StateBag) {
 		Target:  []string{"DELETED"},
 	}
 
-	WaitForState(&stateChange)
+	_, _ = WaitForState(&stateChange)
 }

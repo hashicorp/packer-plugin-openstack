@@ -86,7 +86,7 @@ func TestBerToDer(t *testing.T) {
 	if newKey != der_encoded_key {
 		t.Errorf("Trying to convert a DER encoded key should return the same key.")
 	}
-	if string(msg.Bytes()) != "" {
+	if msg.String() != "" {
 		t.Errorf("Doing nothing with a DER encoded key result in no messages to the UI .")
 	}
 
@@ -96,7 +96,7 @@ func TestBerToDer(t *testing.T) {
 	if err != nil {
 		t.Errorf("Trying to convert a BER encoded key should return a DER encoded key parsable by Go.")
 	}
-	if string(msg.Bytes()) != "Successfully converted BER encoded SSH key to DER encoding.\n" {
+	if msg.String() != "Successfully converted BER encoded SSH key to DER encoding.\n" {
 		t.Errorf("Trying to convert a BER encoded key should tell the UI about the success.")
 	}
 }
