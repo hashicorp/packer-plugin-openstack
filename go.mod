@@ -4,7 +4,7 @@ go 1.16
 
 require (
 	github.com/google/uuid v1.2.0
-	github.com/gophercloud/gophercloud v0.18.0
+	github.com/gophercloud/gophercloud v0.12.0
 	github.com/gophercloud/utils v0.0.0-20200508015959-b0167b94122c
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/hcl/v2 v2.10.0
