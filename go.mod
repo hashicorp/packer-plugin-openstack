@@ -3,7 +3,7 @@ module github.com/hashicorp/packer-plugin-openstack
 go 1.17
 
 require (
-	github.com/google/uuid v1.2.0
+	github.com/google/uuid v1.3.0
 	github.com/gophercloud/gophercloud v0.12.0
 	github.com/gophercloud/utils v0.0.0-20200508015959-b0167b94122c
 	github.com/hashicorp/go-cleanhttp v0.5.2
