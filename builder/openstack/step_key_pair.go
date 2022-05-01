@@ -3,18 +3,13 @@ package openstack
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"log"
 	"os"
-	"os/exec"
 	"runtime"
 
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/hashicorp/packer-plugin-sdk/communicator"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
-	"github.com/hashicorp/packer-plugin-sdk/tmp"
-	"golang.org/x/crypto/ssh"
 )
 
 type StepKeyPair struct {
@@ -69,22 +64,16 @@ func (s *StepKeyPair) Run(ctx context.Context, state multistep.StateBag) multist
 	}
 
 	ui.Say(fmt.Sprintf("Creating temporary keypair: %s ...", s.Comm.SSHTemporaryKeyPairName))
-	keypair, err := keypairs.Create(computeClient, keypairs.CreateOpts{
-		Name: s.Comm.SSHTemporaryKeyPairName,
-	}).Extract()
+	err = keypairs.Create(computeClient, keypairs.CreateOpts{
+		Name:      s.Comm.SSHTemporaryKeyPairName,
+		PublicKey: string(s.Comm.SSHPublicKey),
+	}).Err
 	if err != nil {
-		state.Put("error", fmt.Errorf("Error creating temporary keypair: %s", err))
-		return multistep.ActionHalt
-	}
-
-	if len(keypair.PrivateKey) == 0 {
-		state.Put("error", fmt.Errorf("The temporary keypair returned was blank"))
+		state.Put("error", fmt.Errorf("Error uploading temporary keypair to compute server: %s", err))
 		return multistep.ActionHalt
 	}
 
 	ui.Say(fmt.Sprintf("Created temporary keypair: %s", s.Comm.SSHTemporaryKeyPairName))
-
-	keypair.PrivateKey = string(berToDer([]byte(keypair.PrivateKey), ui))
 
 	// If we're in debug mode, output the private key to the working
 	// directory.
@@ -98,7 +87,7 @@ func (s *StepKeyPair) Run(ctx context.Context, state multistep.StateBag) multist
 		defer f.Close()
 
 		// Write the key out
-		if _, err := f.Write([]byte(keypair.PrivateKey)); err != nil {
+		if _, err := f.Write(s.Comm.SSHPrivateKey); err != nil {
 			state.Put("error", fmt.Errorf("Error saving debug key: %s", err))
 			return multistep.ActionHalt
 		}
@@ -117,52 +106,8 @@ func (s *StepKeyPair) Run(ctx context.Context, state multistep.StateBag) multist
 
 	// Set some state data for use in future steps
 	s.Comm.SSHKeyPairName = s.Comm.SSHTemporaryKeyPairName
-	s.Comm.SSHPrivateKey = []byte(keypair.PrivateKey)
 
 	return multistep.ActionContinue
-}
-
-// Work around for https://github.com/hashicorp/packer/issues/2526
-func berToDer(ber []byte, ui packersdk.Ui) []byte {
-	// Check if x/crypto/ssh can parse the key
-	_, err := ssh.ParsePrivateKey(ber)
-	if err == nil {
-		return ber
-	}
-	// Can't parse the key, maybe it's BER encoded. Try to convert it with OpenSSL.
-	log.Println("Couldn't parse SSH key, trying work around for [GH-2526].")
-
-	openSslPath, err := exec.LookPath("openssl")
-	if err != nil {
-		log.Println("Couldn't find OpenSSL, aborting work around.")
-		return ber
-	}
-
-	berKey, err := tmp.File("packer-ber-privatekey-")
-	defer os.Remove(berKey.Name())
-	if err != nil {
-		return ber
-	}
-	_ = ioutil.WriteFile(berKey.Name(), ber, os.ModeAppend)
-	derKey, err := tmp.File("packer-der-privatekey-")
-	defer os.Remove(derKey.Name())
-	if err != nil {
-		return ber
-	}
-
-	args := []string{"rsa", "-in", berKey.Name(), "-out", derKey.Name()}
-	log.Printf("Executing: %s %v", openSslPath, args)
-	if err := exec.Command(openSslPath, args...).Run(); err != nil {
-		log.Printf("OpenSSL failed with error: %s", err)
-		return ber
-	}
-
-	der, err := ioutil.ReadFile(derKey.Name())
-	if err != nil {
-		return ber
-	}
-	ui.Say("Successfully converted BER encoded SSH key to DER encoding.")
-	return der
 }
 
 func (s *StepKeyPair) Cleanup(state multistep.StateBag) {
