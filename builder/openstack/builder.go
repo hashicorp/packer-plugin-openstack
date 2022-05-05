@@ -98,6 +98,10 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 		&StepLoadFlavor{
 			Flavor: b.config.Flavor,
 		},
+		&communicator.StepSSHKeyGen{
+			CommConf:            &b.config.Comm,
+			SSHTemporaryKeyPair: b.config.Comm.SSHTemporaryKeyPair,
+		},
 		&StepKeyPair{
 			Debug:        b.config.PackerDebug,
 			Comm:         &b.config.Comm,
