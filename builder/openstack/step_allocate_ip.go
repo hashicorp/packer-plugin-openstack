@@ -71,7 +71,7 @@ func (s *StepAllocateIp) Run(ctx context.Context, state multistep.StateBag) mult
 	} else if s.ReuseIPs {
 		// If ReuseIPs is set to true and we have a free floating IP, use it rather
 		// than creating one.
-		ui.Say(fmt.Sprint("Searching for unassociated floating IP"))
+		ui.Say("Searching for unassociated floating IP")
 		freeFloatingIP, err := FindFreeFloatingIP(networkClient)
 		if err != nil {
 			err := fmt.Errorf("Error searching for floating IP: %s", err)

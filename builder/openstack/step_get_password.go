@@ -68,7 +68,7 @@ func (s *StepGetPassword) Run(ctx context.Context, state multistep.StateBag) mul
 		time.Sleep(5 * time.Second)
 	}
 
-	ui.Message(fmt.Sprintf("Password retrieved!"))
+	ui.Message("Password retrieved!")
 	s.Comm.WinRMPassword = password
 
 	// In debug-mode, we output the password
