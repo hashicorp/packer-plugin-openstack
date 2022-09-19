@@ -36,7 +36,7 @@ func (s *StepDiscoverNetwork) Run(ctx context.Context, state multistep.StateBag)
 
 	cidrs := s.NetworkDiscoveryCIDRs
 	if len(networks) == 0 && len(cidrs) > 0 {
-		ui.Say(fmt.Sprintf("Discovering provisioning network..."))
+		ui.Say("Discovering provisioning network...")
 
 		networkID, err := DiscoverProvisioningNetwork(networkClient, cidrs)
 		if err != nil {
