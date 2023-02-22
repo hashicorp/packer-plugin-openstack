@@ -161,7 +161,6 @@ func (s *StepRunSourceServer) Cleanup(state multistep.StateBag) {
 			err = servers.ForceDelete(computeClient, s.server.ID).ExtractErr()
 		} else {
 			err = servers.Delete(computeClient, s.server.ID).ExtractErr()
-			}
 		}
 
 		if err != nil {
