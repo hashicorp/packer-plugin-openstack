@@ -3,8 +3,10 @@ package openstack
 import (
 	"context"
 	"fmt"
+	"github.com/gophercloud/gophercloud"
 	"io/ioutil"
 	"log"
+	"time"
 
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
@@ -150,16 +152,40 @@ func (s *StepRunSourceServer) Cleanup(state multistep.StateBag) {
 		return
 	}
 
+	maxNumErrors := 10
+	numErrors := 0
+
 	ui.Say(fmt.Sprintf("Terminating the source server: %s ...", s.server.ID))
-	if config.ForceDelete {
-		if err := servers.ForceDelete(computeClient, s.server.ID).ExtractErr(); err != nil {
-			ui.Error(fmt.Sprintf("Error terminating server, may still be around: %s", err))
-			return
+	for {
+		if config.ForceDelete {
+			if err = servers.ForceDelete(computeClient, s.server.ID).ExtractErr(); err != nil {
+				ui.Error(fmt.Sprintf("Error terminating server, may still be around: %s", err))
+				return
+			}
+		} else {
+			if err = servers.Delete(computeClient, s.server.ID).ExtractErr(); err != nil {
+				ui.Error(fmt.Sprintf("Error terminating server, may still be around: %s", err))
+				return
+			}
 		}
-	} else {
-		if err := servers.Delete(computeClient, s.server.ID).ExtractErr(); err != nil {
-			ui.Error(fmt.Sprintf("Error terminating server, may still be around: %s", err))
-			return
+
+		if err != nil {
+			_, OK := err.(gophercloud.ErrDefault500)
+			if OK {
+				numErrors++
+				if numErrors >= maxNumErrors {
+					ui.Error(fmt.Sprintf("Error terminating server, maximum number (%d) reached: %s", numErrors, err))
+					return
+				}
+				log.Printf("Error terminating server on (%d) time(s): %s, retrying ...", numErrors, err)
+				time.Sleep(2 * time.Second)
+				continue
+			} else {
+				ui.Error(fmt.Sprintf("Error terminating server, may still be around: %s", err))
+				return
+			}
+		} else {
+			break
 		}
 	}
 
