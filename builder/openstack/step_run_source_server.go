@@ -158,14 +158,9 @@ func (s *StepRunSourceServer) Cleanup(state multistep.StateBag) {
 	ui.Say(fmt.Sprintf("Terminating the source server: %s ...", s.server.ID))
 	for {
 		if config.ForceDelete {
-			if err = servers.ForceDelete(computeClient, s.server.ID).ExtractErr(); err != nil {
-				ui.Error(fmt.Sprintf("Error terminating server, may still be around: %s", err))
-				return
-			}
+			err = servers.ForceDelete(computeClient, s.server.ID).ExtractErr()
 		} else {
-			if err = servers.Delete(computeClient, s.server.ID).ExtractErr(); err != nil {
-				ui.Error(fmt.Sprintf("Error terminating server, may still be around: %s", err))
-				return
+			err = servers.Delete(computeClient, s.server.ID).ExtractErr()
 			}
 		}
 
