@@ -3,15 +3,16 @@ package openstack
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"log"
+	"time"
+
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
-	"io/ioutil"
-	"log"
-	"time"
 )
 
 type StepRunSourceServer struct {
