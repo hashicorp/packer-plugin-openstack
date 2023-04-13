@@ -3,14 +3,15 @@ package openstack
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
-	"log"
-
+	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
+	"io/ioutil"
+	"log"
+	"time"
 )
 
 type StepRunSourceServer struct {
@@ -150,17 +151,34 @@ func (s *StepRunSourceServer) Cleanup(state multistep.StateBag) {
 		return
 	}
 
+	maxNumErrors := 10
+	numErrors := 0
+
 	ui.Say(fmt.Sprintf("Terminating the source server: %s ...", s.server.ID))
-	if config.ForceDelete {
-		if err := servers.ForceDelete(computeClient, s.server.ID).ExtractErr(); err != nil {
+	for {
+		if config.ForceDelete {
+			err = servers.ForceDelete(computeClient, s.server.ID).ExtractErr()
+		} else {
+			err = servers.Delete(computeClient, s.server.ID).ExtractErr()
+		}
+
+		if err == nil {
+			break
+		}
+
+		if _, ok := err.(gophercloud.ErrDefault500); !ok {
 			ui.Error(fmt.Sprintf("Error terminating server, may still be around: %s", err))
 			return
 		}
-	} else {
-		if err := servers.Delete(computeClient, s.server.ID).ExtractErr(); err != nil {
-			ui.Error(fmt.Sprintf("Error terminating server, may still be around: %s", err))
-			return
+
+		if numErrors < maxNumErrors {
+			numErrors++
+			log.Printf("Error terminating server on (%d) time(s): %s, retrying ...", numErrors, err)
+			time.Sleep(2 * time.Second)
+			continue
 		}
+		ui.Error(fmt.Sprintf("Error terminating server, maximum number (%d) reached: %s", numErrors, err))
+		return
 	}
 
 	stateChange := StateChangeConf{
