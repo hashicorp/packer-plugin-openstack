@@ -2,3 +2,4 @@ main
 dist/*
 packer-plugin-openstack
 .docs
+crash.log
