@@ -169,7 +169,7 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 			Comm: &b.config.RunConfig.Comm,
 		},
 		&StepStopServer{},
-		&StepDetachVolume{
+		&StepDeleteServer{
 			UseBlockStorageVolume: b.config.UseBlockStorageVolume,
 		},
 		&stepCreateImage{

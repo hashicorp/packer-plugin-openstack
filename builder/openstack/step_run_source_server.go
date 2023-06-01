@@ -8,9 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
-	"time"
 
-	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
@@ -145,51 +143,10 @@ func (s *StepRunSourceServer) Cleanup(state multistep.StateBag) {
 		return
 	}
 
-	config := state.Get("config").(*Config)
 	ui := state.Get("ui").(packersdk.Ui)
 
-	// We need the v2 compute client
-	computeClient, err := config.computeV2Client()
+	err := DeleteServer(state, s.server.ID)
 	if err != nil {
-		ui.Error(fmt.Sprintf("Error terminating server, may still be around: %s", err))
-		return
+		ui.Error(err.Error())
 	}
-
-	maxNumErrors := 10
-	numErrors := 0
-
-	ui.Say(fmt.Sprintf("Terminating the source server: %s ...", s.server.ID))
-	for {
-		if config.ForceDelete {
-			err = servers.ForceDelete(computeClient, s.server.ID).ExtractErr()
-		} else {
-			err = servers.Delete(computeClient, s.server.ID).ExtractErr()
-		}
-
-		if err == nil {
-			break
-		}
-
-		if _, ok := err.(gophercloud.ErrDefault500); !ok {
-			ui.Error(fmt.Sprintf("Error terminating server, may still be around: %s", err))
-			return
-		}
-
-		if numErrors < maxNumErrors {
-			numErrors++
-			log.Printf("Error terminating server on (%d) time(s): %s, retrying ...", numErrors, err)
-			time.Sleep(2 * time.Second)
-			continue
-		}
-		ui.Error(fmt.Sprintf("Error terminating server, maximum number (%d) reached: %s", numErrors, err))
-		return
-	}
-
-	stateChange := StateChangeConf{
-		Pending: []string{"ACTIVE", "BUILD", "REBUILD", "SUSPENDED", "SHUTOFF", "STOPPED"},
-		Refresh: ServerStateRefreshFunc(computeClient, s.server),
-		Target:  []string{"DELETED"},
-	}
-
-	_, _ = WaitForState(&stateChange)
 }
