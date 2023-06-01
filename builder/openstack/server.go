@@ -12,6 +12,7 @@ import (
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
+	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
 )
 
 // StateRefreshFunc is a function type used for StateChangeConf that is
@@ -93,4 +94,65 @@ func WaitForState(conf *StateChangeConf) (i interface{}, err error) {
 		log.Printf("Waiting for state to become: %s currently %s (%d%%)", conf.Target, currentState, currentProgress)
 		time.Sleep(2 * time.Second)
 	}
+}
+
+func DeleteServer(state multistep.StateBag, instance string) error {
+	config := state.Get("config").(*Config)
+	ui := state.Get("ui").(packersdk.Ui)
+
+	// We need the v2 compute client
+	computeClient, err := config.computeV2Client()
+	if err != nil {
+		err = fmt.Errorf("Error terminating server, may still be around: %s", err)
+		return err
+	}
+
+	maxNumErrors := 10
+	numErrors := 0
+
+	ui.Say(fmt.Sprintf("Terminating the source server: %s ...", instance))
+	for {
+		if config.ForceDelete {
+			err = servers.ForceDelete(computeClient, instance).ExtractErr()
+		} else {
+			err = servers.Delete(computeClient, instance).ExtractErr()
+		}
+
+		if err == nil {
+			break
+		}
+
+		if _, ok := err.(gophercloud.ErrDefault500); !ok {
+			err = fmt.Errorf("Error terminating server, may still be around: %s", err)
+			return err
+		}
+
+		if numErrors < maxNumErrors {
+			numErrors++
+			log.Printf("Error terminating server on (%d) time(s): %s, retrying ...", numErrors, err)
+			time.Sleep(2 * time.Second)
+			continue
+		}
+		err = fmt.Errorf("Error terminating server, maximum number (%d) reached: %s", numErrors, err)
+		return err
+	}
+
+	server, err := servers.Get(computeClient, instance).Extract()
+	if err != nil {
+		err = fmt.Errorf("Error getting server to terminate: %s", err)
+		return err
+	}
+
+	stateChange := StateChangeConf{
+		Pending: []string{"ACTIVE", "BUILD", "REBUILD", "SUSPENDED", "SHUTOFF", "STOPPED"},
+		Refresh: ServerStateRefreshFunc(computeClient, server),
+		Target:  []string{"DELETED"},
+	}
+
+	_, err = WaitForState(&stateChange)
+	if err != nil {
+		err = fmt.Errorf("Error terminating server: %s", err)
+		return err
+	}
+	return nil
 }
