@@ -86,8 +86,7 @@ builder.
 Here is a basic example. This is a example to build on DevStack running in a
 VM.
 
-<Tabs>
-<Tab heading="JSON">
+**JSON**
 
 ```json
 {
@@ -109,8 +108,7 @@ VM.
 }
 ```
 
-</Tab>
-<Tab heading="HCL2">
+**HCL2**
 
 ```hcl
 source "openstack" "example" {
@@ -133,16 +131,13 @@ build {
 
 ```
 
-</Tab>
-</Tabs>
 
 ## Basic Example: Rackspace public cloud
 
 Here is a basic example. This is a working example to build a Ubuntu 12.04 LTS
 (Precise Pangolin) on Rackspace OpenStack cloud offering.
 
-<Tabs>
-<Tab heading="JSON">
+**JSON**
 
 ```json
 {
@@ -159,9 +154,8 @@ Here is a basic example. This is a working example to build a Ubuntu 12.04 LTS
 }
 ```
 
-</Tab>
 
-<Tab heading="HCL2">
+**HCL2**
 
 ```hcl
 
@@ -180,16 +174,13 @@ build {
 }
 ```
 
-</Tab>
-</Tabs>
 
 ## Basic Example: Private OpenStack cloud
 
 This example builds an Ubuntu 14.04 image on a private OpenStack cloud, powered
 by Metacloud.
 
-<Tabs>
-<Tab heading="JSON">
+**JSON**
 
 ```json
 {
@@ -203,9 +194,8 @@ by Metacloud.
 }
 ```
 
-</Tab>
 
-<Tab heading="HCL2">
+**HCL2**
 
 ```hcl
 source "openstack" "example" {
@@ -220,8 +210,6 @@ build {
 }
 ```
 
-</Tab>
-</Tabs>
 
 In this case, the connection information for connecting to OpenStack doesn't
 appear in the template. That is because I source a standard OpenStack script
@@ -262,8 +250,7 @@ A basic example of Instance with a remote root Block Storage service volume.
 This is a working example to build an image on private OpenStack cloud powered
 by Selectel VPC.
 
-<Tabs>
-<Tab heading="JSON">
+**JSON**
 
 ```json
 {
@@ -286,9 +273,8 @@ by Selectel VPC.
 }
 ```
 
-</Tab>
 
-<Tab heading="HCL2">
+**HCL2**
 
 ```hcl
 
@@ -314,8 +300,6 @@ build {
 
 ```
 
-</Tab>
-</Tabs>
 
 ## Notes on OpenStack Authorization
 
