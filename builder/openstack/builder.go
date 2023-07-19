@@ -98,6 +98,9 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 
 	// Build the steps
 	steps := []multistep.Step{
+		&StepPreValidate{
+			ForceImageName: b.config.PackerConfig.PackerForce,
+		},
 		&StepLoadFlavor{
 			Flavor: b.config.Flavor,
 		},
