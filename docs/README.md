@@ -22,6 +22,12 @@ packer {
 }
 ```
 
+Alternatively, you can use `packer plugins install` to manage installation of this plugin.
+
+```sh
+$ packer plugins install github.com/hashicorp/openstack
+```
+
 ### Components
 
 #### Builder
