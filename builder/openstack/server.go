@@ -138,11 +138,6 @@ func DeleteServer(state multistep.StateBag, instance string) error {
 	}
 
 	server, err := servers.Get(computeClient, instance).Extract()
-	if err != nil {
-		err = fmt.Errorf("Error getting server to terminate: %s", err)
-		return err
-	}
-
 	stateChange := StateChangeConf{
 		Pending: []string{"ACTIVE", "BUILD", "REBUILD", "SUSPENDED", "SHUTOFF", "STOPPED"},
 		Refresh: ServerStateRefreshFunc(computeClient, server),
