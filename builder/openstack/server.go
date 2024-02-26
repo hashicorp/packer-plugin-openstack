@@ -38,9 +38,9 @@ type StateChangeConf struct {
 // ServerStateRefreshFunc returns a StateRefreshFunc that is used to watch
 // an openstack server.
 func ServerStateRefreshFunc(
-	client *gophercloud.ServiceClient, s *servers.Server) StateRefreshFunc {
+	client *gophercloud.ServiceClient, instanceID string) StateRefreshFunc {
 	return func() (interface{}, string, int, error) {
-		serverNew, err := servers.Get(client, s.ID).Extract()
+		serverNew, err := servers.Get(client, instanceID).Extract()
 		if err != nil {
 			if _, ok := err.(gophercloud.ErrDefault404); ok {
 				log.Printf("[INFO] 404 on ServerStateRefresh, returning DELETED")
@@ -137,10 +137,9 @@ func DeleteServer(state multistep.StateBag, instance string) error {
 		return err
 	}
 
-	server, err := servers.Get(computeClient, instance).Extract()
 	stateChange := StateChangeConf{
 		Pending: []string{"ACTIVE", "BUILD", "REBUILD", "SUSPENDED", "SHUTOFF", "STOPPED"},
-		Refresh: ServerStateRefreshFunc(computeClient, server),
+		Refresh: ServerStateRefreshFunc(computeClient, instance),
 		Target:  []string{"DELETED"},
 	}
 
