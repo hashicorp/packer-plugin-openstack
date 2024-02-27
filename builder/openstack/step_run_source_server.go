@@ -118,7 +118,7 @@ func (s *StepRunSourceServer) Run(ctx context.Context, state multistep.StateBag)
 	stateChange := StateChangeConf{
 		Pending:   []string{"BUILD"},
 		Target:    []string{"ACTIVE"},
-		Refresh:   ServerStateRefreshFunc(computeClient, s.server),
+		Refresh:   ServerStateRefreshFunc(computeClient, s.server.ID),
 		StepState: state,
 	}
 	latestServer, err := WaitForState(&stateChange)

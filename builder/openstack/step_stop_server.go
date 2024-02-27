@@ -47,7 +47,7 @@ func (s *StepStopServer) Run(ctx context.Context, state multistep.StateBag) mult
 	stateChange := StateChangeConf{
 		Pending:   []string{"ACTIVE"},
 		Target:    []string{"SHUTOFF", "STOPPED"},
-		Refresh:   ServerStateRefreshFunc(client, server),
+		Refresh:   ServerStateRefreshFunc(client, server.ID),
 		StepState: state,
 	}
 	if _, err := WaitForState(&stateChange); err != nil {
