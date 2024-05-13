@@ -4,6 +4,7 @@
 package openstack
 
 import (
+	"errors"
 	"log"
 	"time"
 
@@ -37,6 +38,10 @@ func WaitForVolume(blockStorageClient *gophercloud.ServiceClient, volumeID strin
 
 		if status == "available" {
 			return nil
+		}
+
+		if status == "error" {
+			return errors.New("The status of volume is error")
 		}
 
 		log.Printf("Waiting for volume creation status: %s", status)
