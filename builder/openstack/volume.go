@@ -18,6 +18,7 @@ func (err *volumeErr) Error() string {
 	return "The status of volume is error"
 }
 
+// WaitForVolume waits for the given volume to become available.
 func WaitForVolume(blockStorageClient *gophercloud.ServiceClient, volumeID string) error {
 	maxNumErrors := 10
 	numErrors := 0
