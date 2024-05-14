@@ -79,18 +79,14 @@ func (s *StepCreateVolume) Run(ctx context.Context, state multistep.StateBag) mu
 	// Wait for volume to become available.
 	ui.Say(fmt.Sprintf("Waiting for volume %s (volume id: %s) to become available...", config.VolumeName, volume.ID))
 	if err := WaitForVolume(blockStorageClient, volume.ID); err != nil {
-		_, ok := err.(*volumeErr)
 		err := fmt.Errorf("Error waiting for volume: %s", err)
 		state.Put("error", err)
 		ui.Error(err.Error())
-		if ok {
-			ui.Say(fmt.Sprintf("Deleting volume: %s ...", volume.ID))
-			err = volumes.Delete(blockStorageClient, volume.ID, volumes.DeleteOpts{}).ExtractErr()
-			if err != nil {
-				ui.Error(fmt.Sprintf(
-					"Error cleaning up volume. Please delete the volume manually: %s", volume.ID))
-			}
-		}
+
+		// The volume ID has created, try to clean up
+		s.doCleanup = true
+		s.volumeID = volume.ID
+
 		return multistep.ActionHalt
 	}
 
