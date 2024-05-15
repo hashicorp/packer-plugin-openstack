@@ -83,10 +83,6 @@ func (s *StepCreateVolume) Run(ctx context.Context, state multistep.StateBag) mu
 		state.Put("error", err)
 		ui.Error(err.Error())
 
-		// The volume ID has created, try to clean up
-		s.doCleanup = true
-		s.volumeID = volume.ID
-
 		return multistep.ActionHalt
 	}
 
@@ -124,7 +120,7 @@ func (s *StepCreateVolume) Cleanup(state multistep.StateBag) {
 		return
 	}
 
-	if status != "available" && status != "error" {
+	if status != "available" {
 		ui.Say(fmt.Sprintf(
 			"Waiting for volume %s (volume id: %s) to become available...", s.VolumeName, s.volumeID))
 		if err := WaitForVolume(blockStorageClient, s.volumeID); err != nil {
