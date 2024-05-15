@@ -82,7 +82,6 @@ func (s *StepCreateVolume) Run(ctx context.Context, state multistep.StateBag) mu
 		err := fmt.Errorf("Error waiting for volume: %s", err)
 		state.Put("error", err)
 		ui.Error(err.Error())
-
 		return multistep.ActionHalt
 	}
 
