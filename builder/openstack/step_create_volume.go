@@ -18,7 +18,6 @@ type StepCreateVolume struct {
 	VolumeType             string
 	VolumeAvailabilityZone string
 	volumeID               string
-	doCleanup              bool
 }
 
 func (s *StepCreateVolume) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
@@ -79,14 +78,13 @@ func (s *StepCreateVolume) Run(ctx context.Context, state multistep.StateBag) mu
 	// Wait for volume to become available.
 	ui.Say(fmt.Sprintf("Waiting for volume %s (volume id: %s) to become available...", config.VolumeName, volume.ID))
 	if err := WaitForVolume(blockStorageClient, volume.ID); err != nil {
+		// Put the error volume here for cleanup.
+		s.volumeID = volume.ID
 		err := fmt.Errorf("Error waiting for volume: %s", err)
 		state.Put("error", err)
 		ui.Error(err.Error())
 		return multistep.ActionHalt
 	}
-
-	// Volume was created, so remember to clean it up.
-	s.doCleanup = true
 
 	// Set the Volume ID in the state.
 	ui.Message(fmt.Sprintf("Volume ID: %s", volume.ID))
@@ -97,7 +95,7 @@ func (s *StepCreateVolume) Run(ctx context.Context, state multistep.StateBag) mu
 }
 
 func (s *StepCreateVolume) Cleanup(state multistep.StateBag) {
-	if !s.doCleanup {
+	if s.volumeID == "" {
 		return
 	}
 
@@ -111,24 +109,9 @@ func (s *StepCreateVolume) Cleanup(state multistep.StateBag) {
 		return
 	}
 
-	// Wait for volume to become available.
-	status, err := GetVolumeStatus(blockStorageClient, s.volumeID)
-	if err != nil {
-		ui.Error(fmt.Sprintf(
-			"Error getting the volume information. Please delete the volume manually: %s", s.volumeID))
-		return
-	}
-
-	if status != "available" {
-		ui.Say(fmt.Sprintf(
-			"Waiting for volume %s (volume id: %s) to become available...", s.VolumeName, s.volumeID))
-		if err := WaitForVolume(blockStorageClient, s.volumeID); err != nil {
-			ui.Error(fmt.Sprintf(
-				"Error getting the volume information. Please delete the volume manually: %s", s.volumeID))
-			return
-		}
-	}
 	ui.Say(fmt.Sprintf("Deleting volume: %s ...", s.volumeID))
+
+	// Delete the volume in any status if exists.
 	err = volumes.Delete(blockStorageClient, s.volumeID, volumes.DeleteOpts{}).ExtractErr()
 	if err != nil {
 		ui.Error(fmt.Sprintf(
