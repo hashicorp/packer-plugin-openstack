@@ -114,6 +114,7 @@ func (s *StepCreateVolume) Cleanup(state multistep.StateBag) {
 	// Delete the volume in any status if exists.
 	err = volumes.Delete(blockStorageClient, s.volumeID, volumes.DeleteOpts{}).ExtractErr()
 	if err != nil {
-		ui.Error(fmt.Sprintf("Error cleaning up volume %q: %s. This may need manual deletion.", s.volumeID, err))
+		ui.Error(fmt.Sprintf(
+			"Error cleaning up volume %q: %s. This may need manual deletion.", s.volumeID, err))
 	}
 }
