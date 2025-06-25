@@ -105,7 +105,7 @@ func (s *stepCreateImage) Run(ctx context.Context, state multistep.StateBag) mul
 
 	// Wait for the image to become ready
 	ui.Say(fmt.Sprintf("Waiting for image %s (image id: %s) to become ready...", config.ImageName, imageId))
-	if err := WaitForImage(ctx, imageClient, imageId); err != nil {
+	if err := WaitForImage(ctx, imageClient, imageId, config.ImageCreationWait); err != nil {
 		err := fmt.Errorf("Error waiting for image: %s", err)
 		state.Put("error", err)
 		ui.Error(err.Error())
@@ -120,7 +120,7 @@ func (s *stepCreateImage) Cleanup(multistep.StateBag) {
 }
 
 // WaitForImage waits for the given Image ID to become ready.
-func WaitForImage(ctx context.Context, client *gophercloud.ServiceClient, imageId string) error {
+func WaitForImage(ctx context.Context, client *gophercloud.ServiceClient, imageId string, imageCreationWait int) error {
 	maxNumErrors := 10
 	numErrors := 0
 
@@ -146,6 +146,16 @@ func WaitForImage(ctx context.Context, client *gophercloud.ServiceClient, imageI
 		}
 
 		if image.Status == "active" {
+			if imageCreationWait > 0 {
+				log.Printf("Additional wait (%d seconds) after image status has changed to active...", imageCreationWait)
+				select {
+				case <-time.After(time.Duration(imageCreationWait) * time.Second):
+					// Timer finished, safe to continue
+				case <-ctx.Done():
+					// User cancelled during the wait, abort immediately
+					return ctx.Err()
+				}
+			}
 			return nil
 		}
 

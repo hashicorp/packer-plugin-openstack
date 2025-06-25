@@ -177,6 +177,8 @@ type RunConfig struct {
 	OpenstackProvider string `mapstructure:"openstack_provider"`
 	// *Deprecated* use `floating_ip` or `floating_ip_pool` instead.
 	UseFloatingIp bool `mapstructure:"use_floating_ip" required:"false"`
+	// Additional wait time in seconds after the image reaches `active` status (default: 0).
+	ImageCreationWait int `mapstructure:"image_creation_wait" required:"false"`
 
 	sourceImageOpts images.ListOpts
 }
