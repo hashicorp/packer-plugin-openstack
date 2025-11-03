@@ -9,6 +9,8 @@ import (
 
 	"github.com/gophercloud/gophercloud"
 	"github.com/gophercloud/gophercloud/openstack/imageservice/v2/images"
+
+	registryimage "github.com/hashicorp/packer-plugin-sdk/packer/registry/image"
 )
 
 // Artifact is an artifact implementation that contains built images.
@@ -22,9 +24,16 @@ type Artifact struct {
 	// OpenStack connection for performing API stuff.
 	Client *gophercloud.ServiceClient
 
+	// SourceImage ID of the created image this is actually resolved
+	// based on a few configured config attributes
+	SourceImage string
+
+	// The region is read from the env OS_REGION_NAME if not provided
+	Region string
+
 	// StateData should store data such as GeneratedData
 	// to be shared with post-processors
-	StateData map[string]interface{}
+	StateData map[string]any
 }
 
 func (a *Artifact) BuilderId() string {
@@ -44,7 +53,21 @@ func (a *Artifact) String() string {
 	return fmt.Sprintf("An image was created: %v", a.ImageId)
 }
 
-func (a *Artifact) State(name string) interface{} {
+func (a *Artifact) State(name string) any {
+
+	if name == registryimage.ArtifactStateURI {
+		img, err := registryimage.FromArtifact(a,
+			registryimage.WithRegion(a.Region),
+			registryimage.WithSourceID(a.SourceImage),
+		)
+
+		if err != nil {
+			log.Printf("[DEBUG] error encountered when creating a registry image %v", err)
+			return nil
+		}
+		return img
+
+	}
 	return a.StateData[name]
 }
 

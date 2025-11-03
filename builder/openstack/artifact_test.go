@@ -4,9 +4,12 @@
 package openstack
 
 import (
+	"reflect"
 	"testing"
 
 	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
+	registryimage "github.com/hashicorp/packer-plugin-sdk/packer/registry/image"
+	"github.com/mitchellh/mapstructure"
 )
 
 func TestArtifact_Impl(t *testing.T) {
@@ -61,5 +64,37 @@ func TestArtifactState_StateData(t *testing.T) {
 	result = artifact.State("key")
 	if result != nil {
 		t.Fatalf("Bad: State should be nil for nil StateData")
+	}
+}
+
+func TestArtifactState_hcpPackerRegistryMetadata(t *testing.T) {
+	artifact := &Artifact{
+		ImageId:        "foo",
+		BuilderIdValue: "openstack",
+		SourceImage:    "bar",
+		Region:         "mordor-7",
+	}
+
+	result := artifact.State(registryimage.ArtifactStateURI)
+	if result == nil {
+		t.Fatalf("Bad: HCP Packer registry image data was nil")
+	}
+
+	var image registryimage.Image
+	err := mapstructure.Decode(result, &image)
+	if err != nil {
+		t.Errorf("Bad: unexpected error when trying to decode state into registryimage.Image %v", err)
+	}
+
+	expected := registryimage.Image{
+		ImageID:        "foo",
+		ProviderName:   "openstack",
+		ProviderRegion: "mordor-7",
+		SourceImageID:  "bar",
+		Labels:         map[string]string{},
+	}
+
+	if !reflect.DeepEqual(image, expected) {
+		t.Fatalf("bad: \ngot:\n%#v,\nexpected: \n%#v", image, expected)
 	}
 }

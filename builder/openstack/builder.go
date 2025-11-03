@@ -200,7 +200,9 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 		ImageId:        state.Get("image").(string),
 		BuilderIdValue: BuilderId,
 		Client:         imageClient,
-		StateData:      map[string]interface{}{"generated_data": state.Get("generated_data")},
+		SourceImage:    state.Get("source_image").(string),
+		Region:         b.config.AccessConfig.Region,
+		StateData:      map[string]any{"generated_data": state.Get("generated_data")},
 	}
 
 	return artifact, nil
