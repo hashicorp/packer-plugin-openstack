@@ -70,7 +70,7 @@ func TestArtifactState_StateData(t *testing.T) {
 func TestArtifactState_hcpPackerRegistryMetadata(t *testing.T) {
 	artifact := &Artifact{
 		ImageId:        "foo",
-		BuilderIdValue: "openstack",
+		BuilderIdValue: "mitchellh.openstack",
 		SourceImage:    "bar",
 		Region:         "mordor-7",
 	}

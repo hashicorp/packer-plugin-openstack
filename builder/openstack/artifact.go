@@ -65,6 +65,7 @@ func (a *Artifact) State(name string) any {
 			log.Printf("[DEBUG] error encountered when creating a registry image %v", err)
 			return nil
 		}
+		img.ProviderName = "openstack"
 		return img
 
 	}
