@@ -26,6 +26,7 @@ func (s *StepDeleteServer) Run(ctx context.Context, state multistep.StateBag) mu
 		state.Put("error", err)
 		return multistep.ActionHalt
 	}
+	state.Put("instance_id", "")
 	return multistep.ActionContinue
 }
 

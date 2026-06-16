@@ -26,7 +26,6 @@ type StepRunSourceServer struct {
 	InstanceMetadata      map[string]string
 	UseBlockStorageVolume bool
 	ForceDelete           bool
-	server                *servers.Server
 }
 
 func (s *StepRunSourceServer) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
@@ -103,7 +102,7 @@ func (s *StepRunSourceServer) Run(ctx context.Context, state multistep.StateBag)
 	}
 
 	ui.Say("Launching server...")
-	s.server, err = servers.Create(computeClient, serverOptsExt).Extract()
+	server, err := servers.Create(computeClient, serverOptsExt).Extract()
 	if err != nil {
 		err := fmt.Errorf("Error launching source server: %s", err)
 		state.Put("error", err)
@@ -111,41 +110,42 @@ func (s *StepRunSourceServer) Run(ctx context.Context, state multistep.StateBag)
 		return multistep.ActionHalt
 	}
 
-	ui.Message(fmt.Sprintf("Server ID: %s", s.server.ID))
-	log.Printf("server id: %s", s.server.ID)
+	ui.Message(fmt.Sprintf("Server ID: %s", server.ID))
+	log.Printf("server id: %s", server.ID)
 
 	ui.Say("Waiting for server to become ready...")
 	stateChange := StateChangeConf{
 		Pending:   []string{"BUILD"},
 		Target:    []string{"ACTIVE"},
-		Refresh:   ServerStateRefreshFunc(computeClient, s.server.ID),
+		Refresh:   ServerStateRefreshFunc(computeClient, server.ID),
 		StepState: state,
 	}
 	latestServer, err := WaitForState(&stateChange)
 	if err != nil {
-		err := fmt.Errorf("Error waiting for server (%s) to become ready: %s", s.server.ID, err)
+		err := fmt.Errorf("Error waiting for server (%s) to become ready: %s", server.ID, err)
 		state.Put("error", err)
 		ui.Error(err.Error())
 		return multistep.ActionHalt
 	}
 
-	s.server = latestServer.(*servers.Server)
-	state.Put("server", s.server)
+	server = latestServer.(*servers.Server)
+	state.Put("server", server)
 	// instance_id is the generic term used so that users can have access to the
 	// instance id inside of the provisioners, used in step_provision.
-	state.Put("instance_id", s.server.ID)
+	state.Put("instance_id", server.ID)
 
 	return multistep.ActionContinue
 }
 
 func (s *StepRunSourceServer) Cleanup(state multistep.StateBag) {
-	if s.server == nil {
+	instance := state.Get("instance_id").(string)
+	if instance == "" {
 		return
 	}
 
 	ui := state.Get("ui").(packersdk.Ui)
 
-	err := DeleteServer(state, s.server.ID)
+	err := DeleteServer(state, instance)
 	if err != nil {
 		ui.Error(err.Error())
 	}
