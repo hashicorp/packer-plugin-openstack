@@ -11,7 +11,6 @@ import (
 	"crypto/x509"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 	"os"
 
@@ -205,7 +204,7 @@ func (c *AccessConfig) Prepare(ctx *interpolate.Context) []error {
 	tls_config := &tls.Config{}
 
 	if c.CACertFile != "" {
-		caCert, err := ioutil.ReadFile(c.CACertFile)
+		caCert, err := os.ReadFile(c.CACertFile)
 		if err != nil {
 			return []error{err}
 		}
@@ -300,7 +299,7 @@ type DebugRoundTripper struct {
 func (drt *DebugRoundTripper) RoundTrip(request *http.Request) (*http.Response, error) {
 	defer func() {
 		if request.Body != nil {
-			request.Body.Close()
+			_ = request.Body.Close()
 		}
 	}()
 
@@ -323,9 +322,9 @@ func (drt *DebugRoundTripper) RoundTrip(request *http.Request) (*http.Response, 
 
 	if response.StatusCode >= 400 {
 		buf := bytes.NewBuffer([]byte{})
-		body, _ := ioutil.ReadAll(io.TeeReader(response.Body, buf))
+		body, _ := io.ReadAll(io.TeeReader(response.Body, buf))
 		drt.DebugMessage(fmt.Sprintf("Response Error: %+v\n", string(body)))
-		bufWithClose := ioutil.NopCloser(buf)
+		bufWithClose := io.NopCloser(buf)
 		response.Body = bufWithClose
 	}
 
@@ -333,5 +332,5 @@ func (drt *DebugRoundTripper) RoundTrip(request *http.Request) (*http.Response, 
 }
 
 func (drt *DebugRoundTripper) DebugMessage(message string) {
-	drt.ui.Message(fmt.Sprintf("[DEBUG] %s", message))
+	drt.ui.Say(fmt.Sprintf("[DEBUG] %s", message))
 }

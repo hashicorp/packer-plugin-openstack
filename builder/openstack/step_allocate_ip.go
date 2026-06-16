@@ -32,7 +32,7 @@ func (s *StepAllocateIp) Run(ctx context.Context, state multistep.StateBag) mult
 	state.Put("access_ip", &instanceIP)
 
 	if s.FloatingIP == "" && !s.ReuseIPs && s.FloatingIPNetwork == "" {
-		ui.Message("Floating IP not required")
+		ui.Say("Floating IP not required")
 		return multistep.ActionContinue
 	}
 
@@ -69,7 +69,7 @@ func (s *StepAllocateIp) Run(ctx context.Context, state multistep.StateBag) mult
 		}
 
 		instanceIP = *freeFloatingIP
-		ui.Message(fmt.Sprintf("Selected floating IP: '%s' (%s)", instanceIP.ID, instanceIP.FloatingIP))
+		ui.Say(fmt.Sprintf("Selected floating IP: '%s' (%s)", instanceIP.ID, instanceIP.FloatingIP))
 		state.Put("floatingip_istemp", false)
 	} else if s.ReuseIPs {
 		// If ReuseIPs is set to true and we have a free floating IP, use it rather
@@ -84,7 +84,7 @@ func (s *StepAllocateIp) Run(ctx context.Context, state multistep.StateBag) mult
 		}
 
 		instanceIP = *freeFloatingIP
-		ui.Message(fmt.Sprintf("Selected floating IP: '%s' (%s)", instanceIP.ID, instanceIP.FloatingIP))
+		ui.Say(fmt.Sprintf("Selected floating IP: '%s' (%s)", instanceIP.ID, instanceIP.FloatingIP))
 		state.Put("floatingip_istemp", false)
 	} else if s.FloatingIPNetwork != "" {
 		// Lastly, if FloatingIPNetwork was provided by the user, we need to use it
@@ -109,7 +109,7 @@ func (s *StepAllocateIp) Run(ctx context.Context, state multistep.StateBag) mult
 		}
 
 		instanceIP = *newIP
-		ui.Message(fmt.Sprintf("Created floating IP: '%s' (%s)", instanceIP.ID, instanceIP.FloatingIP))
+		ui.Say(fmt.Sprintf("Created floating IP: '%s' (%s)", instanceIP.ID, instanceIP.FloatingIP))
 		state.Put("floatingip_istemp", true)
 	}
 
@@ -138,7 +138,7 @@ func (s *StepAllocateIp) Run(ctx context.Context, state multistep.StateBag) mult
 			return multistep.ActionHalt
 		}
 
-		ui.Message(fmt.Sprintf(
+		ui.Say(fmt.Sprintf(
 			"Added floating IP '%s' (%s) to instance!", instanceIP.ID, instanceIP.FloatingIP))
 	}
 

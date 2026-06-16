@@ -43,7 +43,7 @@ func (s *StepStopServer) Run(ctx context.Context, state multistep.StateBag) mult
 		}
 	}
 
-	ui.Message(fmt.Sprintf("Waiting for server to stop: %s ...", server.ID))
+	ui.Say(fmt.Sprintf("Waiting for server to stop: %s ...", server.ID))
 	stateChange := StateChangeConf{
 		Pending:   []string{"ACTIVE"},
 		Target:    []string{"SHUTOFF", "STOPPED"},
