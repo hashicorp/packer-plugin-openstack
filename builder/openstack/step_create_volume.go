@@ -88,7 +88,7 @@ func (s *StepCreateVolume) Run(ctx context.Context, state multistep.StateBag) mu
 	}
 
 	// Set the Volume ID in the state.
-	ui.Message(fmt.Sprintf("Volume ID: %s", volume.ID))
+	ui.Say(fmt.Sprintf("Volume ID: %s", volume.ID))
 	state.Put("volume_id", volume.ID)
 
 	return multistep.ActionContinue

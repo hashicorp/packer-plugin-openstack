@@ -100,7 +100,7 @@ func (s *stepCreateImage) Run(ctx context.Context, state multistep.StateBag) mul
 	}
 
 	// Set the Image ID in the state
-	ui.Message(fmt.Sprintf("Image: %s", imageId))
+	ui.Say(fmt.Sprintf("Image: %s", imageId))
 	state.Put("image", imageId)
 
 	// Wait for the image to become ready

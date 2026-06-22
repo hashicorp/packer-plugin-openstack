@@ -47,7 +47,7 @@ func (s *StepDiscoverNetwork) Run(ctx context.Context, state multistep.StateBag)
 			return multistep.ActionHalt
 		}
 
-		ui.Message(fmt.Sprintf("Found network ID: %s", networkID))
+		ui.Say(fmt.Sprintf("Found network ID: %s", networkID))
 		networks = append(networks, servers.Network{UUID: networkID})
 	}
 

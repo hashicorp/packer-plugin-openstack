@@ -57,7 +57,7 @@ func (s *StepLoadFlavor) Run(ctx context.Context, state multistep.StateBag) mult
 		flavor = &flavors.Flavor{ID: id}
 	}
 
-	ui.Message(fmt.Sprintf("Verified flavor. ID: %s", flavor.ID))
+	ui.Say(fmt.Sprintf("Verified flavor. ID: %s", flavor.ID))
 	state.Put("flavor_id", flavor.ID)
 	return multistep.ActionContinue
 }

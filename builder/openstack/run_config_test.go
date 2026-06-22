@@ -16,9 +16,9 @@ import (
 func init() {
 	// Clear out the openstack env vars so they don't
 	// affect our tests.
-	os.Setenv("SDK_USERNAME", "")
-	os.Setenv("SDK_PASSWORD", "")
-	os.Setenv("SDK_PROVIDER", "")
+	_ = os.Setenv("SDK_USERNAME", "")
+	_ = os.Setenv("SDK_PASSWORD", "")
+	_ = os.Setenv("SDK_PROVIDER", "")
 }
 
 func testRunConfig() *RunConfig {
