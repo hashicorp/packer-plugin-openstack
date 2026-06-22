@@ -6,8 +6,8 @@ package openstack
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
 	"log"
+	"os"
 
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
@@ -46,7 +46,7 @@ func (s *StepRunSourceServer) Run(ctx context.Context, state multistep.StateBag)
 
 	userData := []byte(s.UserData)
 	if s.UserDataFile != "" {
-		userData, err = ioutil.ReadFile(s.UserDataFile)
+		userData, err = os.ReadFile(s.UserDataFile)
 		if err != nil {
 			err = fmt.Errorf("Error reading user data file: %s", err)
 			state.Put("error", err)
@@ -111,7 +111,7 @@ func (s *StepRunSourceServer) Run(ctx context.Context, state multistep.StateBag)
 		return multistep.ActionHalt
 	}
 
-	ui.Message(fmt.Sprintf("Server ID: %s", s.server.ID))
+	ui.Say(fmt.Sprintf("Server ID: %s", s.server.ID))
 	log.Printf("server id: %s", s.server.ID)
 
 	ui.Say("Waiting for server to become ready...")

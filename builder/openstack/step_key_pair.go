@@ -81,13 +81,15 @@ func (s *StepKeyPair) Run(ctx context.Context, state multistep.StateBag) multist
 	// If we're in debug mode, output the private key to the working
 	// directory.
 	if s.Debug {
-		ui.Message(fmt.Sprintf("Saving key for debug purposes: %s", s.DebugKeyPath))
+		ui.Say(fmt.Sprintf("Saving key for debug purposes: %s", s.DebugKeyPath))
 		f, err := os.Create(s.DebugKeyPath)
 		if err != nil {
 			state.Put("error", fmt.Errorf("Error saving debug key: %s", err))
 			return multistep.ActionHalt
 		}
-		defer f.Close()
+		defer func() {
+			_ = f.Close()
+		}()
 
 		// Write the key out
 		if _, err := f.Write(s.Comm.SSHPrivateKey); err != nil {
