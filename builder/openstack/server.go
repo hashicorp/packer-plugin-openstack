@@ -122,6 +122,11 @@ func DeleteServer(state multistep.StateBag, instance string) error {
 			break
 		}
 
+		if _, ok := err.(gophercloud.ErrDefault404); ok {
+			ui.Say(fmt.Sprintf("Server %s is already deleted", instance))
+			return nil
+		}
+
 		if _, ok := err.(gophercloud.ErrDefault500); !ok {
 			err = fmt.Errorf("Error terminating server, may still be around: %s", err)
 			return err
