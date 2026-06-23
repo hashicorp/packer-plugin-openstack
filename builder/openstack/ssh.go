@@ -5,7 +5,6 @@ package openstack
 
 import (
 	"errors"
-	"fmt"
 	"log"
 	"time"
 
@@ -90,21 +89,22 @@ func sshAddrFromPool(s *servers.Server, desired string, sshIPVersion string) str
 		for _, element := range elements {
 			var addr string
 			address := element.(map[string]interface{})
+			address_value := address["addr"].(string)
 			if address["OS-EXT-IPS:type"] == "floating" {
-				addr = address["addr"].(string)
+				addr = address_value
 			} else if sshIPVersion == "4" {
 				if address["version"].(float64) == 4 {
-					addr = address["addr"].(string)
+					addr = address_value
 				}
 			} else if sshIPVersion == "6" {
 				if address["version"].(float64) == 6 {
-					addr = fmt.Sprintf("[%s]", address["addr"].(string))
+					addr = address_value
 				}
 			} else {
 				if address["version"].(float64) == 6 {
-					addr = fmt.Sprintf("[%s]", address["addr"].(string))
+					addr = address_value
 				} else {
-					addr = address["addr"].(string)
+					addr = address_value
 				}
 			}
 
