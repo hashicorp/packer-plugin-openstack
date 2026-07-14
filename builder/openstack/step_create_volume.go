@@ -109,9 +109,17 @@ func (s *StepCreateVolume) Cleanup(state multistep.StateBag) {
 		return
 	}
 
-	ui.Say(fmt.Sprintf("Deleting volume: %s ...", s.volumeID))
+	// Wait for the volume to become available before deleting.
+	// After image creation from a volume, Cinder may still be detaching it
+	// (status "uploading"). Deleting in that state returns a 400 error.
+	ui.Say(fmt.Sprintf("Waiting for volume %s to become available...", s.volumeID))
+	if err := WaitForVolume(blockStorageClient, s.volumeID); err != nil {
+		ui.Error(fmt.Sprintf(
+			"Error waiting for volume %s to become available: %s. Attempting deletion anyway.",
+			s.volumeID, err))
+	}
 
-	// Delete the volume in any status if exists.
+	ui.Say(fmt.Sprintf("Deleting volume: %s ...", s.volumeID))
 	err = volumes.Delete(blockStorageClient, s.volumeID, volumes.DeleteOpts{}).ExtractErr()
 	if err != nil {
 		ui.Error(fmt.Sprintf(
