@@ -1,4 +1,4 @@
-## 1.1.4 (June 23, 2026)
+## 1.1.4 (August 13, 2026)
 
 * fix: add an optional wait before creating the image to improve reliability in image creation workflows.
 * fix: use `openstack` as the HCP metadata provider name (instead of the default prefixed provider value).
