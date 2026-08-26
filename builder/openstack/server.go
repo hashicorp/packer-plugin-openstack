@@ -4,13 +4,15 @@
 package openstack
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"time"
 
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
 )
@@ -37,12 +39,12 @@ type StateChangeConf struct {
 
 // ServerStateRefreshFunc returns a StateRefreshFunc that is used to watch
 // an openstack server.
-func ServerStateRefreshFunc(
+func ServerStateRefreshFunc(ctx context.Context,
 	client *gophercloud.ServiceClient, instanceID string) StateRefreshFunc {
 	return func() (interface{}, string, int, error) {
-		serverNew, err := servers.Get(client, instanceID).Extract()
+		serverNew, err := servers.Get(ctx, client, instanceID).Extract()
 		if err != nil {
-			if _, ok := err.(gophercloud.ErrDefault404); ok {
+			if gophercloud.ResponseCodeIs(err, http.StatusNotFound) {
 				log.Printf("[INFO] 404 on ServerStateRefresh, returning DELETED")
 				return nil, "DELETED", 0, nil
 			}
@@ -96,7 +98,7 @@ func WaitForState(conf *StateChangeConf) (i interface{}, err error) {
 	}
 }
 
-func DeleteServer(state multistep.StateBag, instance string) error {
+func DeleteServer(ctx context.Context, state multistep.StateBag, instance string) error {
 	config := state.Get("config").(*Config)
 	ui := state.Get("ui").(packersdk.Ui)
 
@@ -113,16 +115,16 @@ func DeleteServer(state multistep.StateBag, instance string) error {
 	ui.Say(fmt.Sprintf("Terminating the source server: %s ...", instance))
 	for {
 		if config.ForceDelete {
-			err = servers.ForceDelete(computeClient, instance).ExtractErr()
+			err = servers.ForceDelete(ctx, computeClient, instance).ExtractErr()
 		} else {
-			err = servers.Delete(computeClient, instance).ExtractErr()
+			err = servers.Delete(ctx, computeClient, instance).ExtractErr()
 		}
 
 		if err == nil {
 			break
 		}
 
-		if _, ok := err.(gophercloud.ErrDefault500); !ok {
+		if gophercloud.ResponseCodeIs(err, http.StatusInternalServerError) {
 			err = fmt.Errorf("Error terminating server, may still be around: %s", err)
 			return err
 		}
@@ -139,7 +141,7 @@ func DeleteServer(state multistep.StateBag, instance string) error {
 
 	stateChange := StateChangeConf{
 		Pending: []string{"ACTIVE", "BUILD", "REBUILD", "SUSPENDED", "SHUTOFF", "STOPPED"},
-		Refresh: ServerStateRefreshFunc(computeClient, instance),
+		Refresh: ServerStateRefreshFunc(ctx, computeClient, instance),
 		Target:  []string{"DELETED"},
 	}
 

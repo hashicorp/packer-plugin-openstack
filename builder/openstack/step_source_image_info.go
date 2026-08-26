@@ -9,9 +9,9 @@ import (
 	"log"
 	"time"
 
-	"github.com/gophercloud/gophercloud/openstack/imageservice/v2/imageimport"
-	"github.com/gophercloud/gophercloud/openstack/imageservice/v2/images"
-	"github.com/gophercloud/gophercloud/pagination"
+	"github.com/gophercloud/gophercloud/v2/openstack/image/v2/imageimport"
+	"github.com/gophercloud/gophercloud/v2/openstack/image/v2/images"
+	"github.com/gophercloud/gophercloud/v2/pagination"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
 )
@@ -59,7 +59,7 @@ func (s *StepSourceImageInfo) Run(ctx context.Context, state multistep.StateBag)
 
 		ui.Say("Creating image using external source image with name " + s.SourceImageName)
 		ui.Say("Using disk format " + s.ExternalSourceImageFormat)
-		image, err := images.Create(client, createOpts).Extract()
+		image, err := images.Create(ctx, client, createOpts).Extract()
 
 		if err != nil {
 			err := fmt.Errorf("Error creating source image: %s", err)
@@ -76,7 +76,7 @@ func (s *StepSourceImageInfo) Run(ctx context.Context, state multistep.StateBag)
 		}
 
 		ui.Say("Importing External Source Image from URL " + s.ExternalSourceImageURL)
-		err = imageimport.Create(client, image.ID, importOpts).ExtractErr()
+		err = imageimport.Create(ctx, client, image.ID, importOpts).ExtractErr()
 
 		if err != nil {
 			err := fmt.Errorf("Error importing source image: %s", err)
@@ -89,7 +89,7 @@ func (s *StepSourceImageInfo) Run(ctx context.Context, state multistep.StateBag)
 			ui.Say("Image not Active, retrying in 10 seconds")
 			time.Sleep(10 * time.Second)
 
-			img, err := images.Get(client, image.ID).Extract()
+			img, err := images.Get(ctx, client, image.ID).Extract()
 
 			if err != nil {
 				err := fmt.Errorf("Error querying image: %s", err)
@@ -119,7 +119,7 @@ func (s *StepSourceImageInfo) Run(ctx context.Context, state multistep.StateBag)
 	log.Printf("Using Image Filters %+v", s.SourceImageOpts)
 	image := &images.Image{}
 	count := 0
-	err = images.List(client, s.SourceImageOpts).EachPage(func(page pagination.Page) (bool, error) {
+	err = images.List(client, s.SourceImageOpts).EachPage(ctx, func(ctx context.Context, page pagination.Page) (bool, error) {
 		imgs, err := images.ExtractImages(page)
 		if err != nil {
 			return false, err
@@ -183,6 +183,7 @@ func (s *StepSourceImageInfo) Cleanup(state multistep.StateBag) {
 	if s.ExternalSourceImageURL != "" {
 		config := state.Get("config").(*Config)
 		ui := state.Get("ui").(packersdk.Ui)
+		ctx := context.TODO()
 
 		client, err := config.imageV2Client()
 		if err != nil {
@@ -193,7 +194,7 @@ func (s *StepSourceImageInfo) Cleanup(state multistep.StateBag) {
 		}
 
 		ui.Say(fmt.Sprintf("Deleting temporary external source image: %s ...", s.SourceImageName))
-		err = images.Delete(client, s.SourceImage).ExtractErr()
+		err = images.Delete(ctx, client, s.SourceImage).ExtractErr()
 		if err != nil {
 			err := fmt.Errorf("error cleaning up external source image: %s", err)
 			state.Put("error", err)

@@ -7,8 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
 )
@@ -60,7 +60,7 @@ func (s *StepAllocateIp) Run(ctx context.Context, state multistep.StateBag) mult
 	//    ID or name of the network).
 	if s.FloatingIP != "" {
 		// Try to use FloatingIP if it was provided by the user.
-		freeFloatingIP, err := CheckFloatingIP(networkClient, s.FloatingIP)
+		freeFloatingIP, err := CheckFloatingIP(ctx, networkClient, s.FloatingIP)
 		if err != nil {
 			err := fmt.Errorf("Error using provided floating IP '%s': %s", s.FloatingIP, err)
 			state.Put("error", err)
@@ -75,7 +75,7 @@ func (s *StepAllocateIp) Run(ctx context.Context, state multistep.StateBag) mult
 		// If ReuseIPs is set to true and we have a free floating IP, use it rather
 		// than creating one.
 		ui.Say("Searching for unassociated floating IP")
-		freeFloatingIP, err := FindFreeFloatingIP(networkClient)
+		freeFloatingIP, err := FindFreeFloatingIP(ctx, networkClient)
 		if err != nil {
 			err := fmt.Errorf("Error searching for floating IP: %s", err)
 			state.Put("error", err)
@@ -89,7 +89,7 @@ func (s *StepAllocateIp) Run(ctx context.Context, state multistep.StateBag) mult
 	} else if s.FloatingIPNetwork != "" {
 		// Lastly, if FloatingIPNetwork was provided by the user, we need to use it
 		// to allocate a new floating IP and associate it to the instance.
-		floatingNetwork, err := CheckFloatingIPNetwork(networkClient, s.FloatingIPNetwork)
+		floatingNetwork, err := CheckFloatingIPNetwork(ctx, networkClient, s.FloatingIPNetwork)
 		if err != nil {
 			err := fmt.Errorf("Error using the provided floating_ip_network: %s", err)
 			state.Put("error", err)
@@ -98,7 +98,7 @@ func (s *StepAllocateIp) Run(ctx context.Context, state multistep.StateBag) mult
 		}
 
 		ui.Say(fmt.Sprintf("Creating floating IP using network %s ...", floatingNetwork))
-		newIP, err := floatingips.Create(networkClient, floatingips.CreateOpts{
+		newIP, err := floatingips.Create(ctx, networkClient, floatingips.CreateOpts{
 			FloatingNetworkID: floatingNetwork,
 		}).Extract()
 		if err != nil {
@@ -118,7 +118,7 @@ func (s *StepAllocateIp) Run(ctx context.Context, state multistep.StateBag) mult
 		ui.Say(fmt.Sprintf("Associating floating IP '%s' (%s) with instance port...",
 			instanceIP.ID, instanceIP.FloatingIP))
 
-		portID, err := GetInstancePortID(computeClient, server.ID, s.InstanceFloatingIPNet)
+		portID, err := GetInstancePortID(ctx, computeClient, server.ID, s.InstanceFloatingIPNet)
 		if err != nil {
 			err := fmt.Errorf("Error getting interfaces of the instance '%s': %s", server.ID, err)
 			state.Put("error", err)
@@ -126,7 +126,7 @@ func (s *StepAllocateIp) Run(ctx context.Context, state multistep.StateBag) mult
 			return multistep.ActionHalt
 		}
 
-		_, err = floatingips.Update(networkClient, instanceIP.ID, floatingips.UpdateOpts{
+		_, err = floatingips.Update(ctx, networkClient, instanceIP.ID, floatingips.UpdateOpts{
 			PortID: &portID,
 		}).Extract()
 		if err != nil {
@@ -149,6 +149,7 @@ func (s *StepAllocateIp) Run(ctx context.Context, state multistep.StateBag) mult
 func (s *StepAllocateIp) Cleanup(state multistep.StateBag) {
 	config := state.Get("config").(*Config)
 	ui := state.Get("ui").(packersdk.Ui)
+	ctx := context.TODO()
 	instanceIP := state.Get("access_ip").(*floatingips.FloatingIP)
 
 	// Don't clean up if unless required
@@ -170,7 +171,7 @@ func (s *StepAllocateIp) Cleanup(state multistep.StateBag) {
 	}
 
 	if instanceIP.ID != "" {
-		if err := floatingips.Delete(client, instanceIP.ID).ExtractErr(); err != nil {
+		if err := floatingips.Delete(ctx, client, instanceIP.ID).ExtractErr(); err != nil {
 			ui.Error(fmt.Sprintf(
 				"Error deleting temporary floating IP '%s' (%s)", instanceIP.ID, instanceIP.FloatingIP))
 			return

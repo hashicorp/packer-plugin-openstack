@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
 )
@@ -41,7 +41,7 @@ func (s *StepDiscoverNetwork) Run(ctx context.Context, state multistep.StateBag)
 	if len(networks) == 0 && len(cidrs) > 0 {
 		ui.Say("Discovering provisioning network...")
 
-		networkID, err := DiscoverProvisioningNetwork(networkClient, cidrs)
+		networkID, err := DiscoverProvisioningNetwork(ctx, networkClient, cidrs)
 		if err != nil {
 			state.Put("error", err)
 			return multistep.ActionHalt

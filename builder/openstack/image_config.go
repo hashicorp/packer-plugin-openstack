@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"strings"
 
-	imageservice "github.com/gophercloud/gophercloud/openstack/imageservice/v2/images"
+	imageservice "github.com/gophercloud/gophercloud/v2/openstack/image/v2/images"
 	"github.com/hashicorp/packer-plugin-sdk/template/interpolate"
 )
 

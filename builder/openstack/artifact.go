@@ -4,11 +4,12 @@
 package openstack
 
 import (
+	"context"
 	"fmt"
 	"log"
 
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack/imageservice/v2/images"
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/image/v2/images"
 
 	registryimage "github.com/hashicorp/packer-plugin-sdk/packer/registry/image"
 )
@@ -74,5 +75,5 @@ func (a *Artifact) State(name string) any {
 
 func (a *Artifact) Destroy() error {
 	log.Printf("Destroying image: %s", a.ImageId)
-	return images.Delete(a.Client, a.ImageId).ExtractErr()
+	return images.Delete(context.TODO(), a.Client, a.ImageId).ExtractErr()
 }

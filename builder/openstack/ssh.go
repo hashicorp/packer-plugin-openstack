@@ -4,18 +4,20 @@
 package openstack
 
 import (
+	"context"
 	"errors"
 	"log"
 	"time"
 
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
-	"github.com/gophercloud/gophercloud/openstack/networking/v2/extensions/layer3/floatingips"
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/v2/openstack/networking/v2/extensions/layer3/floatingips"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 )
 
 // CommHost looks up the host for the communicator.
 func CommHost(
+	ctx context.Context,
 	host string,
 	client *gophercloud.ServiceClient,
 	sshinterface string,
@@ -54,7 +56,7 @@ func CommHost(
 			return addr, nil
 		}
 
-		s, err := servers.Get(client, s.ID).Extract()
+		s, err := servers.Get(ctx, client, s.ID).Extract()
 		if err != nil {
 			return "", err
 		}

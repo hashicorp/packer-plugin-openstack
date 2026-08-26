@@ -9,11 +9,11 @@ import (
 	"log"
 	"time"
 
-	"github.com/gophercloud/gophercloud/openstack/blockstorage/extensions/volumeactions"
+	"github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v3/volumes"
 
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
-	"github.com/gophercloud/gophercloud/openstack/imageservice/v2/images"
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/v2/openstack/image/v2/images"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
 )
@@ -66,7 +66,7 @@ func (s *stepCreateImage) Run(ctx context.Context, state multistep.StateBag) mul
 
 		// set ImageMetadata before uploading to glance so the new image captured the desired values
 		if len(config.ImageMetadata) > 0 {
-			err = volumeactions.SetImageMetadata(blockStorageClient, volume, volumeactions.ImageMetadataOpts{
+			err = volumes.SetImageMetadata(ctx, blockStorageClient, volume, volumes.ImageMetadataOpts{
 				Metadata: config.ImageMetadata,
 			}).ExtractErr()
 			if err != nil {
@@ -75,7 +75,7 @@ func (s *stepCreateImage) Run(ctx context.Context, state multistep.StateBag) mul
 			}
 		}
 
-		image, err := volumeactions.UploadImage(blockStorageClient, volume, volumeactions.UploadImageOpts{
+		image, err := volumes.UploadImage(ctx, blockStorageClient, volume, volumes.UploadImageOpts{
 			DiskFormat: config.ImageDiskFormat,
 			ImageName:  config.ImageName,
 		}).Extract()
@@ -87,7 +87,7 @@ func (s *stepCreateImage) Run(ctx context.Context, state multistep.StateBag) mul
 		}
 		imageId = image.ImageID
 	} else {
-		imageId, err = servers.CreateImage(computeClient, server.ID, servers.CreateImageOpts{
+		imageId, err = servers.CreateImage(ctx, computeClient, server.ID, servers.CreateImageOpts{
 			Name:     config.ImageName,
 			Metadata: config.ImageMetadata,
 		}).ExtractImageID()
@@ -128,7 +128,7 @@ func WaitForImage(ctx context.Context, client *gophercloud.ServiceClient, imageI
 		if err := ctx.Err(); err != nil {
 			return err
 		}
-		image, err := images.Get(client, imageId).Extract()
+		image, err := images.Get(ctx, client, imageId).Extract()
 		if err != nil {
 			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if ok && (errCode.Actual == 500 || errCode.Actual == 404) {
