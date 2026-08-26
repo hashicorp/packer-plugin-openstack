@@ -7,14 +7,14 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gophercloud/gophercloud/openstack/imageservice/v2/images"
+	"github.com/gophercloud/gophercloud/v2/openstack/image/v2/images"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
 )
 
 type stepUpdateImageMinDisk struct{}
 
-func (s *stepUpdateImageMinDisk) Run(_ context.Context, state multistep.StateBag) multistep.StepAction {
+func (s *stepUpdateImageMinDisk) Run(ctx context.Context, state multistep.StateBag) multistep.StepAction {
 	ui := state.Get("ui").(packersdk.Ui)
 	config := state.Get("config").(*Config)
 
@@ -38,6 +38,7 @@ func (s *stepUpdateImageMinDisk) Run(_ context.Context, state multistep.StateBag
 	ui.Say(fmt.Sprintf("Updating image min disk to %d", config.ImageMinDisk))
 
 	r := images.Update(
+		ctx,
 		imageClient,
 		imageId,
 		images.UpdateOpts{

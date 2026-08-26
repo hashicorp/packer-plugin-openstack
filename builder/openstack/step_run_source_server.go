@@ -9,9 +9,8 @@ import (
 	"log"
 	"os"
 
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/bootfromvolume"
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/keypairs"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
 )
@@ -65,36 +64,30 @@ func (s *StepRunSourceServer) Run(ctx context.Context, state multistep.StateBag)
 		AvailabilityZone: s.AvailabilityZone,
 		UserData:         userData,
 		ConfigDrive:      &s.ConfigDrive,
-		ServiceClient:    computeClient,
 		Metadata:         s.InstanceMetadata,
 	}
-
-	var serverOptsExt servers.CreateOptsBuilder
 
 	// Create root volume in the Block Storage service if required.
 	// Add block device mapping v2 to the server create options if required.
 	if s.UseBlockStorageVolume {
 		volume := state.Get("volume_id").(string)
-		blockDeviceMappingV2 := []bootfromvolume.BlockDevice{
-			{
+
+		serverOpts.BlockDevice = []servers.BlockDevice{
+			servers.BlockDevice{
 				BootIndex:       0,
-				DestinationType: bootfromvolume.DestinationVolume,
-				SourceType:      bootfromvolume.SourceVolume,
+				DestinationType: servers.DestinationVolume,
+				SourceType:      servers.SourceVolume,
 				UUID:            volume,
 			},
 		}
 		// ImageRef and block device mapping is an invalid options combination.
 		serverOpts.ImageRef = ""
-		serverOptsExt = bootfromvolume.CreateOptsExt{
-			CreateOptsBuilder: serverOpts,
-			BlockDevice:       blockDeviceMappingV2,
-		}
-	} else {
-		serverOptsExt = serverOpts
 	}
 
 	// Add keypair to the server create options.
 	keyName := config.Comm.SSHKeyPairName
+	var serverOptsExt servers.CreateOptsBuilder
+	serverOptsExt = serverOpts
 	if keyName != "" {
 		serverOptsExt = keypairs.CreateOptsExt{
 			CreateOptsBuilder: serverOptsExt,
@@ -102,8 +95,10 @@ func (s *StepRunSourceServer) Run(ctx context.Context, state multistep.StateBag)
 		}
 	}
 
+	// FIXME: no schedulerHintOpts config
+
 	ui.Say("Launching server...")
-	s.server, err = servers.Create(computeClient, serverOptsExt).Extract()
+	s.server, err = servers.Create(ctx, computeClient, serverOptsExt, nil).Extract()
 	if err != nil {
 		err := fmt.Errorf("Error launching source server: %s", err)
 		state.Put("error", err)
@@ -118,7 +113,7 @@ func (s *StepRunSourceServer) Run(ctx context.Context, state multistep.StateBag)
 	stateChange := StateChangeConf{
 		Pending:   []string{"BUILD"},
 		Target:    []string{"ACTIVE"},
-		Refresh:   ServerStateRefreshFunc(computeClient, s.server.ID),
+		Refresh:   ServerStateRefreshFunc(ctx, computeClient, s.server.ID),
 		StepState: state,
 	}
 	latestServer, err := WaitForState(&stateChange)
@@ -143,9 +138,12 @@ func (s *StepRunSourceServer) Cleanup(state multistep.StateBag) {
 		return
 	}
 
-	ui := state.Get("ui").(packersdk.Ui)
+	log.Printf("Running Cleanup for StepRunSourceServer id=%s", s.server.ID)
 
-	err := DeleteServer(state, s.server.ID)
+	ui := state.Get("ui").(packersdk.Ui)
+	ctx := context.TODO()
+
+	err := DeleteServer(ctx, state, s.server.ID)
 	if err != nil {
 		ui.Error(err.Error())
 	}

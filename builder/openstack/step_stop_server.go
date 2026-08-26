@@ -7,10 +7,10 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"net/http"
 
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/startstop"
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
 )
@@ -31,8 +31,8 @@ func (s *StepStopServer) Run(ctx context.Context, state multistep.StateBag) mult
 	}
 
 	ui.Say(fmt.Sprintf("Stopping server: %s ...", server.ID))
-	if err := startstop.Stop(client, server.ID).ExtractErr(); err != nil {
-		if _, ok := err.(gophercloud.ErrDefault409); ok {
+	if err := servers.Stop(ctx, client, server.ID).ExtractErr(); err != nil {
+		if gophercloud.ResponseCodeIs(err, http.StatusConflict) {
 			// The server might have already been shut down by Windows Sysprep
 			log.Printf("[WARN] 409 on stopping an already stopped server, continuing")
 			return multistep.ActionContinue
@@ -47,7 +47,7 @@ func (s *StepStopServer) Run(ctx context.Context, state multistep.StateBag) mult
 	stateChange := StateChangeConf{
 		Pending:   []string{"ACTIVE"},
 		Target:    []string{"SHUTOFF", "STOPPED"},
-		Refresh:   ServerStateRefreshFunc(client, server.ID),
+		Refresh:   ServerStateRefreshFunc(ctx, client, server.ID),
 		StepState: state,
 	}
 	if _, err := WaitForState(&stateChange); err != nil {

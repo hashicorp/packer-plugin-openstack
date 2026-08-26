@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"strings"
 
-	imageservice "github.com/gophercloud/gophercloud/openstack/imageservice/v2/images"
+	imageservice "github.com/gophercloud/gophercloud/v2/openstack/image/v2/images"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
 )
@@ -38,6 +38,7 @@ func (s *stepUpdateImageTags) Run(ctx context.Context, state multistep.StateBag)
 
 	ui.Say(fmt.Sprintf("Updating image tags to %s", strings.Join(config.ImageTags, ", ")))
 	r := imageservice.Update(
+		ctx,
 		imageClient,
 		imageId,
 		imageservice.UpdateOpts{

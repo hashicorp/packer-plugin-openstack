@@ -21,7 +21,7 @@ func (s *StepDeleteServer) Run(ctx context.Context, state multistep.StateBag) mu
 
 	instance := state.Get("instance_id").(string)
 
-	err := DeleteServer(state, instance)
+	err := DeleteServer(ctx, state, instance)
 	if err != nil {
 		state.Put("error", err)
 		return multistep.ActionHalt

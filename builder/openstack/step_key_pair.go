@@ -9,7 +9,7 @@ import (
 	"os"
 	"runtime"
 
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/extensions/keypairs"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/keypairs"
 	"github.com/hashicorp/packer-plugin-sdk/communicator"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
@@ -67,7 +67,7 @@ func (s *StepKeyPair) Run(ctx context.Context, state multistep.StateBag) multist
 	}
 
 	ui.Say(fmt.Sprintf("Creating temporary keypair: %s ...", s.Comm.SSHTemporaryKeyPairName))
-	err = keypairs.Create(computeClient, keypairs.CreateOpts{
+	err = keypairs.Create(ctx, computeClient, keypairs.CreateOpts{
 		Name:      s.Comm.SSHTemporaryKeyPairName,
 		PublicKey: string(s.Comm.SSHPublicKey),
 	}).Err
@@ -122,6 +122,7 @@ func (s *StepKeyPair) Cleanup(state multistep.StateBag) {
 
 	config := state.Get("config").(*Config)
 	ui := state.Get("ui").(packersdk.Ui)
+	ctx := context.TODO()
 
 	// We need the v2 compute client
 	computeClient, err := config.computeV2Client()
@@ -131,8 +132,10 @@ func (s *StepKeyPair) Cleanup(state multistep.StateBag) {
 		return
 	}
 
+	deleteOpts := keypairs.DeleteOpts{}
+
 	ui.Say(fmt.Sprintf("Deleting temporary keypair: %s ...", s.Comm.SSHTemporaryKeyPairName))
-	err = keypairs.Delete(computeClient, s.Comm.SSHTemporaryKeyPairName).ExtractErr()
+	err = keypairs.Delete(ctx, computeClient, s.Comm.SSHTemporaryKeyPairName, deleteOpts).ExtractErr()
 	if err != nil {
 		ui.Error(fmt.Sprintf(
 			"Error cleaning up keypair. Please delete the key manually: %s", s.Comm.SSHTemporaryKeyPairName))

@@ -7,6 +7,7 @@ package openstack
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
@@ -14,9 +15,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack"
-	"github.com/gophercloud/utils/openstack/clientconfig"
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack"
+	"github.com/gophercloud/utils/v2/openstack/clientconfig"
 	"github.com/hashicorp/go-cleanhttp"
 	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
 	"github.com/hashicorp/packer-plugin-sdk/template/interpolate"
@@ -135,6 +136,10 @@ func (c *AccessConfig) Prepare(ctx *interpolate.Context) []error {
 		c.ClientKeyFile = os.Getenv("OS_KEY")
 	}
 
+	return nil
+}
+
+func (c *AccessConfig) Authenticate(ctx context.Context) error {
 	clientOpts := new(clientconfig.ClientOpts)
 
 	// If a cloud entry was given, base AuthOptions on a clouds.yaml file.
@@ -143,7 +148,7 @@ func (c *AccessConfig) Prepare(ctx *interpolate.Context) []error {
 
 		cloud, err := clientconfig.GetCloudFromYAML(clientOpts)
 		if err != nil {
-			return []error{err}
+			return err
 		}
 
 		if c.Region == "" && cloud.RegionName != "" {
@@ -166,7 +171,7 @@ func (c *AccessConfig) Prepare(ctx *interpolate.Context) []error {
 
 	ao, err := clientconfig.AuthOptions(clientOpts)
 	if err != nil {
-		return []error{err}
+		return err
 	}
 
 	// Make sure we reauth as needed
@@ -198,7 +203,7 @@ func (c *AccessConfig) Prepare(ctx *interpolate.Context) []error {
 	// Build the client itself
 	client, err := openstack.NewClient(ao.IdentityEndpoint)
 	if err != nil {
-		return []error{err}
+		return err
 	}
 
 	tls_config := &tls.Config{}
@@ -206,7 +211,7 @@ func (c *AccessConfig) Prepare(ctx *interpolate.Context) []error {
 	if c.CACertFile != "" {
 		caCert, err := os.ReadFile(c.CACertFile)
 		if err != nil {
-			return []error{err}
+			return err
 		}
 		caCertPool := x509.NewCertPool()
 		caCertPool.AppendCertsFromPEM(caCert)
@@ -222,7 +227,7 @@ func (c *AccessConfig) Prepare(ctx *interpolate.Context) []error {
 	if c.ClientCertFile != "" && c.ClientKeyFile != "" {
 		cert, err := tls.LoadX509KeyPair(c.ClientCertFile, c.ClientKeyFile)
 		if err != nil {
-			return []error{err}
+			return err
 		}
 
 		tls_config.Certificates = []tls.Certificate{cert}
@@ -233,9 +238,9 @@ func (c *AccessConfig) Prepare(ctx *interpolate.Context) []error {
 	client.HTTPClient.Transport = transport
 
 	// Auth
-	err = openstack.Authenticate(client, *ao)
+	err = openstack.Authenticate(ctx, client, *ao)
 	if err != nil {
-		return []error{err}
+		return err
 	}
 
 	c.osClient = client
@@ -259,7 +264,7 @@ func (c *AccessConfig) computeV2Client() (*gophercloud.ServiceClient, error) {
 }
 
 func (c *AccessConfig) imageV2Client() (*gophercloud.ServiceClient, error) {
-	return openstack.NewImageServiceV2(c.osClient, gophercloud.EndpointOpts{
+	return openstack.NewImageV2(c.osClient, gophercloud.EndpointOpts{
 		Region:       c.Region,
 		Availability: c.getEndpointType(),
 	})

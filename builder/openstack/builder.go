@@ -76,6 +76,12 @@ func (b *Builder) Prepare(raws ...interface{}) ([]string, []string, error) {
 }
 
 func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook) (packersdk.Artifact, error) {
+
+	err := b.config.AccessConfig.Authenticate(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("Error initializing compute client: %s", err)
+	}
+
 	if b.config.PackerDebug {
 		b.config.enableDebug(ui)
 	}
@@ -158,6 +164,7 @@ func (b *Builder) Run(ctx context.Context, ui packersdk.Ui, hook packersdk.Hook)
 		&communicator.StepConnect{
 			Config: &b.config.RunConfig.Comm,
 			Host: CommHost(
+				ctx,
 				b.config.RunConfig.Comm.Host(),
 				computeClient,
 				b.config.SSHInterface,

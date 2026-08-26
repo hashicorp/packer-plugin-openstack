@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
 )
@@ -37,7 +37,7 @@ func (s *StepWaitForRackConnect) Run(ctx context.Context, state multistep.StateB
 	ui.Say(fmt.Sprintf(
 		"Waiting for server (%s) to become RackConnect ready...", server.ID))
 	for {
-		server, err = servers.Get(computeClient, server.ID).Extract()
+		server, err = servers.Get(ctx, computeClient, server.ID).Extract()
 		if err != nil {
 			return multistep.ActionHalt
 		}

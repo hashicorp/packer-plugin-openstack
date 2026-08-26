@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gophercloud/gophercloud/openstack/imageservice/v2/members"
+	"github.com/gophercloud/gophercloud/v2/openstack/image/v2/members"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
 )
@@ -38,7 +38,7 @@ func (s *stepAddImageMembers) Run(ctx context.Context, state multistep.StateBag)
 
 	for _, member := range config.ImageMembers {
 		ui.Say(fmt.Sprintf("Adding member '%s' to image %s", member, imageId))
-		r := members.Create(imageClient, imageId, member)
+		r := members.Create(ctx, imageClient, imageId, member)
 		if _, err = r.Extract(); err != nil {
 			err = fmt.Errorf("Error adding member to image: %s", err)
 			state.Put("error", err)
@@ -49,7 +49,7 @@ func (s *stepAddImageMembers) Run(ctx context.Context, state multistep.StateBag)
 	if config.ImageAutoAcceptMembers {
 		for _, member := range config.ImageMembers {
 			ui.Say(fmt.Sprintf("Accepting image %s for member '%s'", imageId, member))
-			r := members.Update(imageClient, imageId, member, members.UpdateOpts{Status: "accepted"})
+			r := members.Update(ctx, imageClient, imageId, member, members.UpdateOpts{Status: "accepted"})
 			if _, err = r.Extract(); err != nil {
 				err = fmt.Errorf("Error accepting image for member: %s", err)
 				state.Put("error", err)

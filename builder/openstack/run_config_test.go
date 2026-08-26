@@ -8,7 +8,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/gophercloud/gophercloud/openstack/imageservice/v2/images"
+	"github.com/gophercloud/gophercloud/v2/openstack/image/v2/images"
 	"github.com/hashicorp/packer-plugin-sdk/communicator"
 	"github.com/mitchellh/mapstructure"
 )

@@ -10,7 +10,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
+	"github.com/gophercloud/gophercloud/v2/openstack/compute/v2/servers"
 	"github.com/hashicorp/packer-plugin-sdk/communicator"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
@@ -60,7 +60,7 @@ func (s *StepGetPassword) Run(ctx context.Context, state multistep.StateBag) mul
 		return multistep.ActionHalt
 	}
 
-	for ; password == "" && err == nil; password, err = servers.GetPassword(computeClient, server.ID).ExtractPassword(privateKey.(*rsa.PrivateKey)) {
+	for ; password == "" && err == nil; password, err = servers.GetPassword(ctx, computeClient, server.ID).ExtractPassword(privateKey.(*rsa.PrivateKey)) {
 
 		// Check for an interrupt in between attempts.
 		if _, ok := state.GetOk(multistep.StateCancelled); ok {

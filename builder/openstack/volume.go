@@ -4,22 +4,23 @@
 package openstack
 
 import (
+	"context"
 	"errors"
 	"log"
 	"time"
 
-	"github.com/gophercloud/gophercloud"
-	"github.com/gophercloud/gophercloud/openstack/blockstorage/v3/volumes"
-	"github.com/gophercloud/gophercloud/openstack/imageservice/v2/images"
+	"github.com/gophercloud/gophercloud/v2"
+	"github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v3/volumes"
+	"github.com/gophercloud/gophercloud/v2/openstack/image/v2/images"
 )
 
 // WaitForVolume waits for the given volume to become available.
-func WaitForVolume(blockStorageClient *gophercloud.ServiceClient, volumeID string) error {
+func WaitForVolume(ctx context.Context, blockStorageClient *gophercloud.ServiceClient, volumeID string) error {
 	maxNumErrors := 10
 	numErrors := 0
 
 	for {
-		status, err := GetVolumeStatus(blockStorageClient, volumeID)
+		status, err := GetVolumeStatus(ctx, blockStorageClient, volumeID)
 		if err != nil {
 			errCode, ok := err.(*gophercloud.ErrUnexpectedResponseCode)
 			if ok && (errCode.Actual == 500 || errCode.Actual == 404) {
@@ -52,8 +53,8 @@ func WaitForVolume(blockStorageClient *gophercloud.ServiceClient, volumeID strin
 // GetVolumeSize returns volume size in gigabytes based on the image min disk
 // value if it's not empty.
 // Or it calculates needed gigabytes size from the image bytes size.
-func GetVolumeSize(imageClient *gophercloud.ServiceClient, imageID string) (int, error) {
-	sourceImage, err := images.Get(imageClient, imageID).Extract()
+func GetVolumeSize(ctx context.Context, imageClient *gophercloud.ServiceClient, imageID string) (int, error) {
+	sourceImage, err := images.Get(ctx, imageClient, imageID).Extract()
 	if err != nil {
 		return 0, err
 	}
@@ -74,8 +75,8 @@ func GetVolumeSize(imageClient *gophercloud.ServiceClient, imageID string) (int,
 	return volumeSizeGB, nil
 }
 
-func GetVolumeStatus(blockStorageClient *gophercloud.ServiceClient, volumeID string) (string, error) {
-	volume, err := volumes.Get(blockStorageClient, volumeID).Extract()
+func GetVolumeStatus(ctx context.Context, blockStorageClient *gophercloud.ServiceClient, volumeID string) (string, error) {
+	volume, err := volumes.Get(ctx, blockStorageClient, volumeID).Extract()
 	if err != nil {
 		return "", err
 	}

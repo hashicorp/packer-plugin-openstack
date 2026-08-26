@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/gophercloud/gophercloud/openstack/blockstorage/v3/volumes"
+	"github.com/gophercloud/gophercloud/v2/openstack/blockstorage/v3/volumes"
 	"github.com/hashicorp/packer-plugin-sdk/multistep"
 	packersdk "github.com/hashicorp/packer-plugin-sdk/packer"
 )
@@ -49,7 +49,7 @@ func (s *StepCreateVolume) Run(ctx context.Context, state multistep.StateBag) mu
 			return multistep.ActionHalt
 		}
 
-		volumeSize, err = GetVolumeSize(imageClient, sourceImage)
+		volumeSize, err = GetVolumeSize(ctx, imageClient, sourceImage)
 		if err != nil {
 			err := fmt.Errorf("Error creating volume: %s", err)
 			state.Put("error", err)
@@ -59,6 +59,7 @@ func (s *StepCreateVolume) Run(ctx context.Context, state multistep.StateBag) mu
 	}
 
 	ui.Say("Creating volume...")
+	schedulerHintOpts := volumes.SchedulerHintOpts{}
 	volumeOpts := volumes.CreateOpts{
 		Size:             volumeSize,
 		VolumeType:       s.VolumeType,
@@ -67,7 +68,7 @@ func (s *StepCreateVolume) Run(ctx context.Context, state multistep.StateBag) mu
 		ImageID:          sourceImage,
 		Metadata:         config.ImageMetadata,
 	}
-	volume, err := volumes.Create(blockStorageClient, volumeOpts).Extract()
+	volume, err := volumes.Create(ctx, blockStorageClient, volumeOpts, schedulerHintOpts).Extract()
 	if err != nil {
 		err := fmt.Errorf("Error creating volume: %s", err)
 		state.Put("error", err)
@@ -80,7 +81,7 @@ func (s *StepCreateVolume) Run(ctx context.Context, state multistep.StateBag) mu
 
 	// Wait for volume to become available.
 	ui.Say(fmt.Sprintf("Waiting for volume %s (volume id: %s) to become available...", config.VolumeName, volume.ID))
-	if err := WaitForVolume(blockStorageClient, volume.ID); err != nil {
+	if err := WaitForVolume(ctx, blockStorageClient, volume.ID); err != nil {
 		err := fmt.Errorf("Error waiting for volume: %s", err)
 		state.Put("error", err)
 		ui.Error(err.Error())
@@ -101,6 +102,7 @@ func (s *StepCreateVolume) Cleanup(state multistep.StateBag) {
 
 	config := state.Get("config").(*Config)
 	ui := state.Get("ui").(packersdk.Ui)
+	ctx := context.TODO()
 
 	blockStorageClient, err := config.blockStorageV3Client()
 	if err != nil {
@@ -113,14 +115,14 @@ func (s *StepCreateVolume) Cleanup(state multistep.StateBag) {
 	// After image creation from a volume, Cinder may still be detaching it
 	// (status "uploading"). Deleting in that state returns a 400 error.
 	ui.Say(fmt.Sprintf("Waiting for volume %s to become available...", s.volumeID))
-	if err := WaitForVolume(blockStorageClient, s.volumeID); err != nil {
+	if err := WaitForVolume(ctx, blockStorageClient, s.volumeID); err != nil {
 		ui.Error(fmt.Sprintf(
 			"Error waiting for volume %s to become available: %s. Attempting deletion anyway.",
 			s.volumeID, err))
 	}
 
 	ui.Say(fmt.Sprintf("Deleting volume: %s ...", s.volumeID))
-	err = volumes.Delete(blockStorageClient, s.volumeID, volumes.DeleteOpts{}).ExtractErr()
+	err = volumes.Delete(ctx, blockStorageClient, s.volumeID, volumes.DeleteOpts{}).ExtractErr()
 	if err != nil {
 		ui.Error(fmt.Sprintf(
 			"Error cleaning up volume %q: %s. This may need manual deletion.", s.volumeID, err))
