@@ -4,6 +4,7 @@
 package openstack
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -34,6 +35,8 @@ func CheckFloatingIP(client *gophercloud.ServiceClient, id string) (*floatingips
 	return floatingIP, nil
 }
 
+var errNoFreeFloatingIP = errors.New("no free floating IPs found")
+
 // FindFreeFloatingIP returns free unassociated floating IP.
 // It will return first floating IP if there are many.
 func FindFreeFloatingIP(client *gophercloud.ServiceClient) (*floatingips.FloatingIP, error) {
@@ -63,7 +66,7 @@ func FindFreeFloatingIP(client *gophercloud.ServiceClient) (*floatingips.Floatin
 		return nil, err
 	}
 	if freeFloatingIP == nil {
-		return nil, fmt.Errorf("no free floating IPs found")
+		return nil, errNoFreeFloatingIP
 	}
 
 	return freeFloatingIP, nil

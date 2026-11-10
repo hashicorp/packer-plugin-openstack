@@ -5,6 +5,7 @@ package openstack
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/gophercloud/gophercloud/openstack/compute/v2/servers"
@@ -76,17 +77,27 @@ func (s *StepAllocateIp) Run(ctx context.Context, state multistep.StateBag) mult
 		// than creating one.
 		ui.Say("Searching for unassociated floating IP")
 		freeFloatingIP, err := FindFreeFloatingIP(networkClient)
-		if err != nil {
+		switch {
+		case err == nil:
+			instanceIP = *freeFloatingIP
+			ui.Say(fmt.Sprintf("Selected floating IP: '%s' (%s)", instanceIP.ID, instanceIP.FloatingIP))
+			state.Put("floatingip_istemp", false)
+		case errors.Is(err, errNoFreeFloatingIP) && s.FloatingIPNetwork != "":
+			ui.Say("No unassociated floating IP found, allocating a new one")
+		case errors.Is(err, errNoFreeFloatingIP):
+			err := fmt.Errorf("Error searching for floating IP: %s and no floating_ip_network was given to allocate a new one", err)
+			state.Put("error", err)
+			ui.Error(err.Error())
+			return multistep.ActionHalt
+		default:
 			err := fmt.Errorf("Error searching for floating IP: %s", err)
 			state.Put("error", err)
 			ui.Error(err.Error())
 			return multistep.ActionHalt
 		}
+	}
 
-		instanceIP = *freeFloatingIP
-		ui.Say(fmt.Sprintf("Selected floating IP: '%s' (%s)", instanceIP.ID, instanceIP.FloatingIP))
-		state.Put("floatingip_istemp", false)
-	} else if s.FloatingIPNetwork != "" {
+	if instanceIP.ID == "" && s.FloatingIPNetwork != "" {
 		// Lastly, if FloatingIPNetwork was provided by the user, we need to use it
 		// to allocate a new floating IP and associate it to the instance.
 		floatingNetwork, err := CheckFloatingIPNetwork(networkClient, s.FloatingIPNetwork)
